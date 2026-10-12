@@ -76,3 +76,4 @@ Este proyecto fue desarrollado con R versión 4.5.2. Los paquetes requeridos son
 ## Contacto
 
 Julián David León Torres — leonjuliand@javeriana.edu.co
+
