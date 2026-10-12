@@ -9,7 +9,7 @@ Estudio observacional, analítico, transversal, cuyo objetivo es evaluar la conc
 Los datos se recolectarán prospectivamente en la consulta ambulatoria de neurología del Hospital Militar Central, Bogotá, mediante REDCap.
 
 - **Población:** Pacientes adultos con antecedente de ACV isquémico o hemorrágico y sus cuidadores principales.
-- **Muestra objetivo:** 255 díadas paciente–cuidador analizables.
+- **Muestra objetivo:** 255 parejas paciente–cuidador analizables.
 - **Muestreo:** No probabilístico, consecutivo por conveniencia operativa.
 - **Variables:** Características sociodemográficas, características clínicas del ACV, dependencia funcional, características del cuidador y respuestas al SPARC-Sp-Col.
 - **Análisis:** Estadística descriptiva, acuerdo observado, Kappa de Cohen, Kappa ponderado, intervalos de confianza del 95 % y análisis exploratorios de discordancia.
@@ -17,26 +17,23 @@ Los datos se recolectarán prospectivamente en la consulta ambulatoria de neurol
 ## Estructura del repositorio
 
 ```text
-proyecto-SPARC-ACV/
+SPARC-Sp-Col-ACV/
 │
-├── README.md
-├── .gitignore
+├── code/
+│   └── 01_importacion_revision.R
 │
 ├── data/
 │   ├── raw/
-│   │   └── .gitkeep
+│   │   └── base_erc_cohorte.csv
 │   └── processed/
-│       └── .gitkeep
 │
-├── code/
+├── docs/
+│   ├── diccionario_variables.R
+│   ├── diccionario_variables.csv
+│   └── fuentes_datos.md
 │
-├── output/
-│   ├── figures/
-│   │   └── .gitkeep
-│   └── tables/
-│       └── .gitkeep
-│
-└── docs/
+├── .gitignore
+└── README.md
 ```
 
 ### Descripción de las carpetas
@@ -64,7 +61,8 @@ Este proyecto fue desarrollado con R versión 4.5.2. Los paquetes requeridos son
 
 - tidyverse
 - rmarkdown
-- 
+- here
+- skimr
 
 ## Cómo reproducir el análisis
 
