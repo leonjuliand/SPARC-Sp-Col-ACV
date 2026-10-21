@@ -1,0 +1,292 @@
+---
+title: "Descripción general de la base de datos"
+subtitle: "Cohorte de pacientes con enfermedad renal crónica"
+author: "Julián David León Torres"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+
+library(tidyverse)
+library(here)
+library(skimr)
+library(gtsummary)
+
+# Cargar la base de datos
+base <- read.csv(
+  here("data", "raw", "base_erc_cohorte.csv"),
+  encoding = "UTF-8"
+)
+```
+
+# Descripción del proyecto
+
+Esta base de datos corresponde a una cohorte prospectiva de pacientes con enfermedad
+renal crónica (ERC) en estadios G2 a G4, seguidos durante 24 meses. Los datos fueron
+proporcionados por el curso para el desarrollo de las prácticas del Módulo 2.
+
+El análisis de esta base tiene como objetivo desarrollar habilidades en organización
+reproducible de proyectos analíticos, limpieza de datos, análisis descriptivo,
+modelado estadístico y generación reproducible de resultados.
+
+# Estructura de la base de datos
+
+La base de datos incluye `r nrow(base)` participantes y `r ncol(base)` variables,
+organizadas en cuatro bloques: datos basales (sociodemográficos, clínicos y de
+laboratorio), seguimiento al mes 12, seguimiento al mes 24 y desenlaces.
+
+```{r dimensiones}
+# Dimensiones
+cat("Participantes:", nrow(base), "\n")
+cat("Variables:", ncol(base), "\n\n")
+
+# Nombres de todas las variables
+cat("Variables disponibles:\n")
+print(names(base))
+```
+
+## Pérdidas de seguimiento
+
+```{r perdidas-seguimiento}
+# Resumen de pérdidas
+perdidas <- tibble(
+  Punto = c("Mes 12", "Mes 24"),
+  n_perdidos = c(
+    sum(base$perdida_seguimiento_m12, na.rm = TRUE),
+    sum(base$perdida_seguimiento_m24, na.rm = TRUE)
+  ),
+  pct_perdidos = round(
+    c(
+      mean(base$perdida_seguimiento_m12, na.rm = TRUE),
+      mean(base$perdida_seguimiento_m24, na.rm = TRUE)
+    ) * 100, 1
+  )
+)
+
+knitr::kable(
+  perdidas,
+  col.names = c(
+    "Punto de seguimiento",
+    "N perdidos",
+    "% perdidos"
+  ),
+  caption = "Tabla. Pérdidas de seguimiento por punto de medición"
+)
+```
+
+La pérdida de seguimiento al mes 12 fue de `r perdidas$n_perdidos[1]` participantes
+(`r perdidas$pct_perdidos[1]`%), y al mes 24 de `r perdidas$n_perdidos[2]`
+(`r perdidas$pct_perdidos[2]`%).
+
+# Características basales de la cohorte
+
+## Descripción general
+
+```{r tabla-caracteristicas-basales}
+base %>%
+  select(
+    edad,
+    sexo,
+    estadio_basal,
+    etiologia_erc,
+    diabetes,
+    hipertension,
+    cardiopatia_isquemica,
+    tfg_ml_min_basal,
+    creatinina_mg_dl_basal,
+    hemoglobina_g_dl_basal,
+    albumina_g_dl_basal,
+    proteinuria_mg_g_basal,
+    pas_mmhg_basal
+  ) %>%
+  tbl_summary(
+    label = list(
+      edad                   ~ "Edad (años)",
+      sexo                   ~ "Sexo",
+      estadio_basal          ~ "Estadio de ERC",
+      etiologia_erc          ~ "Etiología de la ERC",
+      diabetes               ~ "Diabetes mellitus",
+      hipertension           ~ "Hipertensión arterial",
+      cardiopatia_isquemica  ~ "Cardiopatía isquémica",
+      tfg_ml_min_basal       ~ "TFG estimada (mL/min/1.73m²)",
+      creatinina_mg_dl_basal ~ "Creatinina sérica (mg/dL)",
+      hemoglobina_g_dl_basal ~ "Hemoglobina (g/dL)",
+      albumina_g_dl_basal    ~ "Albúmina sérica (g/dL)",
+      proteinuria_mg_g_basal ~ "Proteinuria (mg/g)",
+      pas_mmhg_basal         ~ "PAS (mmHg)"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{median} ({p25}–{p75})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) %>%
+  modify_caption(
+    paste0(
+      "**Tabla 1. Características basales de la cohorte (n = ",
+      nrow(base),
+      ")**"
+    )
+  ) %>%
+  bold_labels()
+```
+
+## Distribución por estadio de ERC
+
+```{r grafico-estadios, fig.width=9, fig.height=6}
+base %>%
+  count(estadio_basal) %>%
+  mutate(
+    pct = round(n / sum(n) * 100, 1),
+    estadio_basal = factor(
+      estadio_basal,
+      levels = c("G2", "G3a", "G3b", "G4")
+    )
+  ) %>%
+  ggplot(
+    aes(
+      x = estadio_basal,
+      y = n,
+      fill = estadio_basal
+    )
+  ) +
+  geom_col(
+    width = 0.6,
+    show.legend = FALSE
+  ) +
+  geom_text(
+    aes(label = paste0(n, "\n(", pct, "%)")),
+    vjust = -0.3,
+    size = 4
+  ) +
+  scale_fill_manual(
+    values = c(
+      "G2" = "#93C6E0",
+      "G3a" = "#4A90D9",
+      "G3b" = "#2E75B6",
+      "G4" = "#1F5C99"
+    )
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.15))
+  ) +
+  labs(
+    title = "Distribución de participantes por estadio de ERC al reclutamiento",
+    x = "Estadio de ERC (KDIGO)",
+    y = "Número de participantes"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+## TFG basal por estadio
+
+```{r grafico-tfg, fig.width=9, fig.height=6}
+base %>%
+  mutate(
+    estadio_basal = factor(
+      estadio_basal,
+      levels = c("G2", "G3a", "G3b", "G4")
+    )
+  ) %>%
+  ggplot(
+    aes(
+      x = estadio_basal,
+      y = tfg_ml_min_basal,
+      fill = estadio_basal
+    )
+  ) +
+  geom_boxplot(
+    alpha = 0.7,
+    outlier.shape = 21
+  ) +
+  scale_fill_manual(
+    values = c(
+      "G2" = "#93C6E0",
+      "G3a" = "#4A90D9",
+      "G3b" = "#2E75B6",
+      "G4" = "#1F5C99"
+    )
+  ) +
+  labs(
+    title = "Distribución de la TFG estimada por estadio basal de ERC",
+    x = "Estadio de ERC al reclutamiento",
+    y = "TFG estimada (mL/min/1.73m²)",
+    fill = "Estadio"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "none"
+  )
+```
+
+# Datos faltantes
+
+```{r tabla-datos-faltantes}
+# Resumen de datos faltantes por variable
+base %>%
+  summarise(
+    across(
+      everything(),
+      ~sum(is.na(.))
+    )
+  ) %>%
+  pivot_longer(
+    everything(),
+    names_to = "Variable",
+    values_to = "N faltantes"
+  ) %>%
+  filter(
+    `N faltantes` > 0
+  ) %>%
+  mutate(
+    `% faltantes` = round(
+      `N faltantes` / nrow(base) * 100,
+      1
+    )
+  ) %>%
+  arrange(
+    desc(`N faltantes`)
+  ) %>%
+  knitr::kable(
+    caption = "Tabla. Variables con datos faltantes"
+  )
+```
+
+# Observaciones sobre la calidad de los datos
+
+Durante la revisión inicial se identificaron las siguientes observaciones que
+requieren atención en la fase de limpieza de datos:
+
+1. **Valores atípicos en creatinina basal:** La variable `creatinina_mg_dl_basal`
+   presenta valores fuera del rango esperado para la población estudiada. Se
+   revisarán en detalle en la semana de limpieza de datos.
+
+2. **Valores atípicos en peso basal:** La variable `peso_kg_basal` presenta
+   algunos valores inusuales que podrían corresponder a errores de registro.
+
+3. **Datos faltantes en variables de seguimiento:** Las variables de laboratorio
+   en las visitas de mes 12 y mes 24 presentan datos faltantes adicionales
+   (más allá de los esperados por pérdida de seguimiento), probablemente
+   correspondientes a visitas con exámenes incompletos.
+
+Estas observaciones serán abordadas sistemáticamente en la fase de limpieza.
+
+# Información de sesión
+
+```{r informacion-sesion}
+sessionInfo()
+```
