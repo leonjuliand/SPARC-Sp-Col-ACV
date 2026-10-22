@@ -94,7 +94,7 @@ La pérdida de seguimiento al mes 12 fue de `r perdidas$n_perdidos[1]` participa
 
 # Características basales de la cohorte
 
-## Descripción general
+## Descripción general.
 
 ```{r tabla-caracteristicas-basales}
 base %>%
