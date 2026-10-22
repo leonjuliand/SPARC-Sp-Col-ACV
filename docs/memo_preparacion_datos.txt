@@ -1,0 +1,21 @@
+MEMO: DECISIONES DE PREPARACIÓN DE DATOS
+Fecha: 2026-10-21
+
+1. CORRECCIÓN DE ATÍPICOS EN CREATININA BASAL
+   - ERC-XXXX (0.08 mg/dL → 0.84 mg/dL): error de punto decimal
+     Evidencia: valor de 0.84 registrado en el sistema de captura original
+   - ERC-YYYY (142.0 → 1.61 mg/dL): unidades incorrectas (µmol/L → mg/dL)
+     Evidencia: resultado de laboratorio indica unidades µmol/L
+   - ERC-ZZZZ (18.5 mg/dL): conservado; posible en G4 severo
+     Acción: marcado para análisis de sensibilidad
+
+2. MANEJO DE PESO ATÍPICO
+   - ERC-AAAA (8.5 kg → NA): imposible para adulto, sin fuente para verificar
+
+3. VARIABLES EXCLUIDAS DE LA BASE ANALÍTICA
+   - fecha_reclutamiento: reemplazada por dias_desde_inicio
+   - imc_basal: reemplazado por imc_calculado (más confiable)
+
+4. IMPUTACIÓN
+   - No se realizó imputación en el análisis principal
+   - Análisis de sensibilidad con imputación múltiple: pendiente (semana 14)

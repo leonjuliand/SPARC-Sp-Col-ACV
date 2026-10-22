@@ -92,7 +92,7 @@ La pérdida de seguimiento al mes 12 fue de `r perdidas$n_perdidos[1]` participa
 (`r perdidas$pct_perdidos[1]`%), y al mes 24 de `r perdidas$n_perdidos[2]`
 (`r perdidas$pct_perdidos[2]`%).
 
-# Características basales de la cohorte
+<!-- # Características basales de la cohorte -->
 
 ## Descripción general.
 
