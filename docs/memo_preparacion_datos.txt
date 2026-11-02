@@ -1,21 +1,27 @@
 MEMO: DECISIONES DE PREPARACIÓN DE DATOS
-Fecha: 2026-10-21
+Fecha: 2026-11-01
 
-1. CORRECCIÓN DE ATÍPICOS EN CREATININA BASAL
-   - ERC-XXXX (0.08 mg/dL → 0.84 mg/dL): error de punto decimal
-     Evidencia: valor de 0.84 registrado en el sistema de captura original
-   - ERC-YYYY (142.0 → 1.61 mg/dL): unidades incorrectas (µmol/L → mg/dL)
-     Evidencia: resultado de laboratorio indica unidades µmol/L
-   - ERC-ZZZZ (18.5 mg/dL): conservado; posible en G4 severo
-     Acción: marcado para análisis de sensibilidad
+1. REVISIÓN DE ATÍPICOS EN CREATININA BASAL
+   - Revisar la documentación original y reemplazar los IDs de ejemplo
+   - No afirmar correcciones individuales sin verificarlas en la fuente
+   - Considerar análisis de sensibilidad para valores extremos plausibles
 
 2. MANEJO DE PESO ATÍPICO
-   - ERC-AAAA (8.5 kg → NA): imposible para adulto, sin fuente para verificar
+   - Confirmar el ID real del peso atípico y justificar su recodificación
 
 3. VARIABLES EXCLUIDAS DE LA BASE ANALÍTICA
    - fecha_reclutamiento: reemplazada por dias_desde_inicio
-   - imc_basal: reemplazado por imc_calculado (más confiable)
+   - imc_basal: se conserva imc_calculado y se excluye el valor previo
 
 4. IMPUTACIÓN
    - No se realizó imputación en el análisis principal
    - Análisis de sensibilidad con imputación múltiple: pendiente (semana 14)
+
+5. VARIABLES DERIVADAS
+   - etiologia_agrupada: agrupación desde etiologia_erc
+   - log_proteinuria_basal: logaritmo natural de proteinuria basal positiva
+   - anemia_basal: Hb <12 g/dL en mujeres y <13 g/dL en hombres
+   - Los valores faltantes de sexo/hemoglobina conservan NA
+
+6. CORRECCIONES DE ATÍPICOS
+   - Verificar los IDs reales antes de afirmar que las correcciones por ID se aplicaron

@@ -1,0 +1,459 @@
+---
+title: "Análisis exploratorio de datos — Cohorte ERC"
+subtitle: "Seminario de Epidemiología Clínica II — Módulo 2"
+author: "Julián David León Torres"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+# Comprobar dependencias ANTES de intentar cargar la base.
+paquetes <- c("tidyverse", "here", "skimr", "gtsummary", "naniar",
+              "corrplot", "knitr", "rmarkdown", "sessioninfo")
+
+no_instalados <- paquetes[!vapply(paquetes, requireNamespace,
+                                  logical(1), quietly = TRUE)]
+
+if (length(no_instalados) > 0) {
+  stop("Faltan paquetes: ", paste(no_instalados, collapse = ", "),
+       ". Instálalos con install.packages(c(",
+       paste(sprintf('"%s"', no_instalados), collapse = ", "), "))")
+}
+
+library(tidyverse)
+library(here)
+library(skimr)
+library(gtsummary)
+library(naniar)
+library(corrplot)
+
+# Cargar base analítica desde la raíz del proyecto.
+ruta_base <- here("data", "processed", "base_analitica_v1.0.rds")
+
+if (!file.exists(ruta_base)) {
+  stop("No se encontró la base de datos en: ", ruta_base,
+       ". Abre el proyecto .Rproj correcto o revisa la carpeta data/processed/.")
+}
+
+base <- readRDS(ruta_base)
+
+if (!is.data.frame(base)) {
+  stop("El archivo RDS no contiene un data.frame/tibble.")
+}
+
+cat("Base cargada:", nrow(base), "participantes,",
+    ncol(base), "variables\n")
+
+# Validar que estén las columnas que utiliza este informe.
+columnas_requeridas <- c(
+  "id_estudio", "edad", "estadio_basal", "sexo", "etiologia_agrupada",
+  "diabetes", "hipertension", "cardiopatia_isquemica", "imc_calculado",
+  "pas_mmhg_basal", "tfg_ml_min_basal", "creatinina_mg_dl_basal",
+  "hemoglobina_g_dl_basal", "albumina_g_dl_basal", "proteinuria_mg_g_basal",
+  "anemia_basal", "ieca_o_ara2", "estatinas", "n_medicamentos_totales",
+  "progresion_g5_o_trr", "tiempo_seguimiento_dias", "log_proteinuria_basal",
+  "perdida_seguimiento_m12", "perdida_seguimiento_m24",
+  "tfg_ml_min_m12", "tfg_ml_min_m24", "tasa_declive_tfg",
+  "creatinina_mg_dl_m12", "hemoglobina_g_dl_m12", "albumina_g_dl_m12",
+  "proteinuria_mg_g_m12", "hemoglobina_g_dl_m24", "albumina_g_dl_m24",
+  "proteinuria_mg_g_m24"
+)
+
+faltan <- setdiff(columnas_requeridas, names(base))
+
+if (length(faltan) > 0) {
+  stop("Estas columnas no existen en la base: ", paste(faltan, collapse = ", "))
+}
+```
+
+# Descripción de la base de datos
+
+La base analítica incluye `r nrow(base)` participantes con enfermedad renal
+crónica en estadios G2 a G4, seguidos durante 24 meses con dos puntos de
+evaluación (mes 12 y mes 24).
+
+## Flujo de participantes
+
+```{r flujo_participantes}
+flujo <- tibble(
+  Etapa = c(
+    "Participantes en la base original",
+    "Pérdida de seguimiento al mes 12",
+    "Pérdida de seguimiento al mes 24",
+    "Participantes con seguimiento completo al mes 24",
+    "Participantes con desenlace (progresión G5/TRR)"
+  ),
+  N = c(
+    nrow(base),
+    sum(base$perdida_seguimiento_m12, na.rm = TRUE),
+    sum(base$perdida_seguimiento_m24, na.rm = TRUE),
+    sum(!base$perdida_seguimiento_m24, na.rm = TRUE),
+    sum(base$progresion_g5_o_trr, na.rm = TRUE)
+  ),
+  Porcentaje = c(
+    "100%",
+    paste0(round(mean(base$perdida_seguimiento_m12, na.rm=TRUE)*100,1), "%"),
+    paste0(round(mean(base$perdida_seguimiento_m24, na.rm=TRUE)*100,1), "%"),
+    paste0(round(mean(!base$perdida_seguimiento_m24, na.rm=TRUE)*100,1), "%"),
+    paste0(round(mean(base$progresion_g5_o_trr, na.rm=TRUE)*100,1), "%")
+  )
+)
+
+knitr::kable(flujo, caption = "Tabla. Flujo de participantes en la cohorte")
+```
+
+[**Complete aquí con 2-3 oraciones que interpreten el flujo de participantes.**
+Por ejemplo: cuántos participantes tienen seguimiento completo, cuál es la
+tasa de pérdida y si esa tasa es aceptable para el análisis.]
+
+# Resumen estadístico general
+
+```{r resumen_general}
+# Resumen completo por tipo de variable
+skim(base %>%
+       select(edad, estadio_basal, sexo, diabetes, hipertension,
+              tfg_ml_min_basal, creatinina_mg_dl_basal,
+              hemoglobina_g_dl_basal, albumina_g_dl_basal,
+              proteinuria_mg_g_basal, pas_mmhg_basal,
+              progresion_g5_o_trr, tiempo_seguimiento_dias))
+```
+
+# Características basales de la cohorte
+
+## Tabla 1: características por estadio de ERC
+
+```{r tabla_1}
+base %>%
+  select(estadio_basal, edad, sexo, etiologia_agrupada,
+         diabetes, hipertension, cardiopatia_isquemica,
+         imc_calculado, pas_mmhg_basal,
+         tfg_ml_min_basal, creatinina_mg_dl_basal,
+         hemoglobina_g_dl_basal, albumina_g_dl_basal,
+         proteinuria_mg_g_basal, anemia_basal,
+         ieca_o_ara2, estatinas, n_medicamentos_totales) %>%
+  tbl_summary(
+    by = estadio_basal,
+    label = list(
+      edad                   ~ "Edad (años)",
+      sexo                   ~ "Sexo femenino",
+      etiologia_agrupada     ~ "Etiología de la ERC",
+      diabetes               ~ "Diabetes mellitus",
+      hipertension           ~ "Hipertensión arterial",
+      cardiopatia_isquemica  ~ "Cardiopatía isquémica",
+      imc_calculado          ~ "IMC (kg/m²)",
+      pas_mmhg_basal         ~ "PAS (mmHg)",
+      tfg_ml_min_basal       ~ "TFG estimada (mL/min/1.73m²)",
+      creatinina_mg_dl_basal ~ "Creatinina sérica (mg/dL)",
+      hemoglobina_g_dl_basal ~ "Hemoglobina (g/dL)",
+      albumina_g_dl_basal    ~ "Albúmina sérica (g/dL)",
+      proteinuria_mg_g_basal ~ "Proteinuria (mg/g)",
+      anemia_basal           ~ "Anemia al reclutamiento",
+      ieca_o_ara2            ~ "IECA o ARA2",
+      estatinas              ~ "Estatinas",
+      n_medicamentos_totales ~ "N.° total de medicamentos"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{median} ({p25}–{p75})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) %>%
+  add_overall() %>%
+  add_p() %>%
+  modify_caption("**Tabla 1. Características basales por estadio de ERC**") %>%
+  bold_labels()
+```
+
+[**Complete aquí con 3-5 oraciones interpretando los hallazgos principales
+de la Tabla 1.** Describa el gradiente a través de los estadios en las
+variables más relevantes. ¿Qué diferencias son estadísticamente
+significativas? ¿Son clínicamente plausibles?]
+
+# Distribución de variables continuas
+
+## Histogramas
+
+```{r histogramas}
+base %>%
+  select(edad, tfg_ml_min_basal, creatinina_mg_dl_basal,
+         hemoglobina_g_dl_basal, albumina_g_dl_basal,
+         proteinuria_mg_g_basal, pas_mmhg_basal,
+         log_proteinuria_basal) %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "valor") %>%
+  mutate(variable = recode(variable,
+    "edad"                   = "Edad (años)",
+    "tfg_ml_min_basal"       = "TFG (mL/min/1.73m²)",
+    "creatinina_mg_dl_basal" = "Creatinina (mg/dL)",
+    "hemoglobina_g_dl_basal" = "Hemoglobina (g/dL)",
+    "albumina_g_dl_basal"    = "Albúmina (g/dL)",
+    "proteinuria_mg_g_basal" = "Proteinuria (mg/g)",
+    "pas_mmhg_basal"         = "PAS (mmHg)",
+    "log_proteinuria_basal"  = "Log-proteinuria"
+  )) %>%
+  filter(!is.na(valor)) %>%
+  ggplot(aes(x = valor)) +
+  geom_histogram(bins = 25, fill = "#2E75B6", color = "white", alpha = 0.8) +
+  facet_wrap(~variable, scales = "free", ncol = 4) +
+  labs(title = "Distribución de variables continuas basales",
+       x = NULL, y = "Frecuencia") +
+  theme_minimal(base_size = 11)
+```
+
+[**Interprete las distribuciones observadas.** ¿Qué variables muestran
+distribución aproximadamente normal? ¿Cuáles tienen sesgo marcado?
+¿Justifica alguna distribución una transformación adicional?]
+
+## Valores atípicos por estadio
+
+```{r valores_atipicos}
+base %>%
+  select(estadio_basal, tfg_ml_min_basal, creatinina_mg_dl_basal,
+         hemoglobina_g_dl_basal, albumina_g_dl_basal, pas_mmhg_basal) %>%
+  pivot_longer(-estadio_basal,
+               names_to  = "variable",
+               values_to = "valor") %>%
+  mutate(variable = recode(variable,
+    "tfg_ml_min_basal"       = "TFG (mL/min/1.73m²)",
+    "creatinina_mg_dl_basal" = "Creatinina (mg/dL)",
+    "hemoglobina_g_dl_basal" = "Hemoglobina (g/dL)",
+    "albumina_g_dl_basal"    = "Albúmina (g/dL)",
+    "pas_mmhg_basal"         = "PAS (mmHg)"
+  )) %>%
+  filter(!is.na(valor)) %>%
+  ggplot(aes(x = estadio_basal, y = valor, fill = estadio_basal)) +
+  geom_boxplot(outlier.shape = 21, outlier.fill = "red",
+               outlier.size = 2, alpha = 0.7) +
+  scale_fill_brewer(palette = "Blues") +
+  facet_wrap(~variable, scales = "free_y", ncol = 3) +
+  labs(title = "Distribución de variables por estadio de ERC",
+       subtitle = "Los puntos rojos indican posibles valores atípicos residuales",
+       x = "Estadio de ERC", y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "none")
+```
+
+[**Documente los valores atípicos residuales identificados**, si los hay.
+¿Son valores biológicamente posibles o indican problemas de calidad?]
+
+# Evolución longitudinal de las variables clave
+
+## TFG a lo largo del seguimiento
+
+```{r evolucion_tfg}
+base %>%
+  select(id_estudio, estadio_basal,
+         tfg_ml_min_basal, tfg_ml_min_m12, tfg_ml_min_m24) %>%
+  pivot_longer(
+    cols      = starts_with("tfg"),
+    names_to  = "tiempo",
+    values_to = "tfg"
+  ) %>%
+  mutate(
+    tiempo = factor(tiempo,
+                    levels = c("tfg_ml_min_basal",
+                               "tfg_ml_min_m12",
+                               "tfg_ml_min_m24"),
+                    labels = c("Basal", "Mes 12", "Mes 24"))
+  ) %>%
+  filter(!is.na(tfg)) %>%
+  ggplot(aes(x = tiempo, y = tfg,
+             color = estadio_basal, group = id_estudio)) +
+  geom_line(alpha = 0.12) +
+  # Con solo tres tiempos de visita, mostrar la mediana por estadio
+  # evita usar un ajuste LOESS sobre un eje temporal categórico.
+  stat_summary(aes(group = estadio_basal),
+               fun = median, geom = "line", linewidth = 1.5) +
+  stat_summary(aes(group = estadio_basal),
+               fun = median, geom = "point", size = 2.3) +
+  scale_color_manual(values = c("G2"  = "#93C6E0",
+                                 "G3a" = "#4A90D9",
+                                 "G3b" = "#2E75B6",
+                                 "G4"  = "#1F5C99")) +
+  labs(
+    title  = "Evolución de la TFG durante el seguimiento",
+    x      = "Punto de seguimiento",
+    y      = "TFG estimada (mL/min/1.73m²)",
+    color  = "Estadio basal"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+```{r declive_tfg}
+# Tasa de declive anual por estadio
+base %>%
+  filter(!is.na(tasa_declive_tfg)) %>%
+  group_by(estadio_basal) %>%
+  summarise(
+    n = n(),
+    mediana_declive = median(tasa_declive_tfg),
+    p25 = quantile(tasa_declive_tfg, 0.25),
+    p75 = quantile(tasa_declive_tfg, 0.75)
+  ) %>%
+  knitr::kable(
+    digits = 1,
+    col.names = c("Estadio", "N", "Mediana (mL/min/año)",
+                  "P25", "P75"),
+    caption = "Tabla. Tasa anual de declive de TFG por estadio basal"
+  )
+```
+
+[**Interprete la evolución de la TFG.** ¿Se observa el gradiente esperado
+en la tasa de declive? ¿Hay estadios con comportamiento inesperado?]
+
+# Correlaciones entre variables basales
+
+```{r correlaciones}
+vars_cor <- base %>%
+  select(edad, tfg_ml_min_basal, creatinina_mg_dl_basal,
+         hemoglobina_g_dl_basal, albumina_g_dl_basal,
+         log_proteinuria_basal, pas_mmhg_basal,
+         imc_calculado, n_medicamentos_totales) %>%
+  na.omit()
+
+cor_mat <- cor(vars_cor, method = "spearman")
+
+colnames(cor_mat) <- rownames(cor_mat) <- c(
+  "Edad", "TFG", "Creatinina",
+  "Hemoglobina", "Albúmina",
+  "Log-proteinuria", "PAS",
+  "IMC", "N medicamentos"
+)
+
+corrplot(cor_mat,
+         method      = "color",
+         type        = "upper",
+         tl.cex      = 0.85,
+         addCoef.col = "black",
+         number.cex  = 0.7,
+         col = colorRampPalette(c("#CC0000", "white", "#1F5C99"))(200),
+         title = "Correlaciones de Spearman entre variables basales",
+         mar   = c(0, 0, 2, 0))
+```
+
+[**Interprete las correlaciones más relevantes.** ¿Qué pares de variables
+muestran correlación fuerte (|r| > 0.6)? ¿Puede haber problemas de
+colinealidad en los modelos de regresión múltiple? ¿La dirección de las
+correlaciones es la esperada clínicamente?]
+
+# Verificación de calidad post-limpieza
+
+```{r calidad_datos}
+cat("=== VERIFICACIONES DE CALIDAD ===\n\n")
+
+# IDs duplicados
+duplicados <- sum(duplicated(base$id_estudio))
+cat("IDs duplicados:", duplicados, "\n")
+
+# Coherencia TFG-estadio
+cat("\nTFG mediana por estadio (debe ser G2 > G3a > G3b > G4):\n")
+base %>%
+  group_by(estadio_basal) %>%
+  summarise(tfg_mediana = median(tfg_ml_min_basal, na.rm=TRUE)) %>%
+  print()
+
+# Coherencia seguimiento-pérdida
+incoherencias <- sum(
+  (!is.na(base$tfg_ml_min_m12) & base$perdida_seguimiento_m12) |
+  (is.na(base$tfg_ml_min_m12) & !base$perdida_seguimiento_m12),
+  na.rm = TRUE
+)
+cat("\nIncoherencias seguimiento-pérdida mes 12:", incoherencias, "\n")
+
+# Relación TFG-creatinina (validación cruzada)
+cat("\nCorrelación TFG-creatinina basal (debe ser fuertemente negativa):",
+    round(cor(base$tfg_ml_min_basal, base$creatinina_mg_dl_basal,
+              use = "complete.obs", method = "spearman"), 2), "\n")
+```
+
+```{r dispersion_creatinina_tfg}
+ggplot(base %>% filter(!is.na(creatinina_mg_dl_basal),
+                       creatinina_mg_dl_basal > 0,
+                       creatinina_mg_dl_basal < 15),
+       aes(x = creatinina_mg_dl_basal,
+           y = tfg_ml_min_basal,
+           color = estadio_basal)) +
+  geom_point(alpha = 0.5, size = 1.8) +
+  geom_smooth(color = "black", method = "loess",
+              se = FALSE, linewidth = 1) +
+  scale_color_manual(values = c("G2"  = "#93C6E0",
+                                 "G3a" = "#4A90D9",
+                                 "G3b" = "#2E75B6",
+                                 "G4"  = "#1F5C99")) +
+  scale_x_log10() +
+  labs(
+    title   = "Relación entre creatinina sérica y TFG estimada",
+    subtitle = "Validación cruzada de la coherencia entre variables de laboratorio",
+    x       = "Creatinina sérica basal (mg/dL, escala logarítmica)",
+    y       = "TFG estimada basal (mL/min/1.73m²)",
+    color   = "Estadio"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+[**Resuma los hallazgos de calidad.** ¿Se detectaron problemas residuales?
+¿Los datos están listos para el análisis estadístico formal?]
+
+# Evaluación de datos faltantes
+
+```{r datos_faltantes}
+vis_miss(base %>%
+  select(tfg_ml_min_m12, creatinina_mg_dl_m12,
+         hemoglobina_g_dl_m12, albumina_g_dl_m12,
+         proteinuria_mg_g_m12,
+         tfg_ml_min_m24, hemoglobina_g_dl_m24,
+         albumina_g_dl_m24, proteinuria_mg_g_m24)) +
+  labs(title = "Patrón de datos faltantes en variables de seguimiento")
+```
+
+```{r faltantes_por_estadio}
+# ¿Los faltantes están asociados con el estadio? (prueba informal de MAR)
+base %>%
+  group_by(estadio_basal) %>%
+  summarise(
+    con_dato = sum(!is.na(hemoglobina_g_dl_m12)),
+    sin_dato = sum(is.na(hemoglobina_g_dl_m12)),
+    pct_faltante = round(100 * sin_dato / (con_dato + sin_dato), 1),
+    .groups = "drop"
+  ) %>%
+  knitr::kable(
+    col.names = c("Estadio", "Con dato", "Sin dato", "% faltante"),
+    caption   = "Tabla. Datos faltantes en hemoglobina mes 12 por estadio"
+  )
+```
+
+[**Interprete el patrón de datos faltantes.** ¿Son los faltantes proporcionales
+entre estadios (compatible con MCAR) o más frecuentes en estadios avanzados
+(sugiere MAR)? ¿Qué implicaciones tiene para la estrategia de análisis?]
+
+# Conclusiones para el análisis estadístico
+
+[**Complete esta sección con sus propias conclusiones.** Debe incluir:]
+
+**Hallazgos principales del análisis exploratorio:**
+- [Describa los hallazgos más relevantes de la distribución de variables]
+- [Mencione correlaciones importantes para el análisis]
+- [Documente cualquier problema de calidad residual identificado]
+
+**Decisiones metodológicas informadas por el análisis exploratorio:**
+- [Transformaciones de variables que se aplicarán en el análisis]
+- [Estrategia de manejo de datos faltantes]
+- [Covariables potencialmente colineales a considerar en los modelos]
+- [Subgrupos o patrones inesperados que requieren análisis adicional]
+
+**Declaración de preparación para el análisis:**
+La base analítica ha sido revisada y los datos están [listos / requieren
+los siguientes ajustes adicionales] para el análisis estadístico formal.
+
+# Información de sesión
+
+```{r informacion_sesion}
+sessioninfo::session_info()
+```
