@@ -1,3 +1,4 @@
+
 ---
 title: "Análisis exploratorio de datos — Cohorte ERC"
 subtitle: "Seminario de Epidemiología Clínica II — Módulo 2"
@@ -14,20 +15,7 @@ output:
     code_folding: show
 ---
 
-```{r setup, include=FALSE}
-# Comprobar dependencias ANTES de intentar cargar la base.
-paquetes <- c("tidyverse", "here", "skimr", "gtsummary", "naniar",
-              "corrplot", "knitr", "rmarkdown", "sessioninfo")
-
-no_instalados <- paquetes[!vapply(paquetes, requireNamespace,
-                                  logical(1), quietly = TRUE)]
-
-if (length(no_instalados) > 0) {
-  stop("Faltan paquetes: ", paste(no_instalados, collapse = ", "),
-       ". Instálalos con install.packages(c(",
-       paste(sprintf('"%s"', no_instalados), collapse = ", "), "))")
-}
-
+```{r setup, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(here)
 library(skimr)
@@ -35,42 +23,42 @@ library(gtsummary)
 library(naniar)
 library(corrplot)
 
-# Cargar base analítica desde la raíz del proyecto.
+# Cargar base analítica
 ruta_base <- here("data", "processed", "base_analitica_v1.0.rds")
 
 if (!file.exists(ruta_base)) {
-  stop("No se encontró la base de datos en: ", ruta_base,
-       ". Abre el proyecto .Rproj correcto o revisa la carpeta data/processed/.")
+  stop("No se encontró la base analítica: ", ruta_base)
 }
 
 base <- readRDS(ruta_base)
 
-if (!is.data.frame(base)) {
-  stop("El archivo RDS no contiene un data.frame/tibble.")
-}
-
 cat("Base cargada:", nrow(base), "participantes,",
     ncol(base), "variables\n")
 
-# Validar que estén las columnas que utiliza este informe.
-columnas_requeridas <- c(
-  "id_estudio", "edad", "estadio_basal", "sexo", "etiologia_agrupada",
-  "diabetes", "hipertension", "cardiopatia_isquemica", "imc_calculado",
-  "pas_mmhg_basal", "tfg_ml_min_basal", "creatinina_mg_dl_basal",
-  "hemoglobina_g_dl_basal", "albumina_g_dl_basal", "proteinuria_mg_g_basal",
-  "anemia_basal", "ieca_o_ara2", "estatinas", "n_medicamentos_totales",
-  "progresion_g5_o_trr", "tiempo_seguimiento_dias", "log_proteinuria_basal",
+# Verificar variables necesarias para el análisis
+variables_requeridas <- c(
+  "id_estudio", "edad", "estadio_basal", "sexo",
+  "etiologia_agrupada", "diabetes", "hipertension",
+  "cardiopatia_isquemica", "imc_calculado",
+  "pas_mmhg_basal", "tfg_ml_min_basal",
+  "creatinina_mg_dl_basal", "hemoglobina_g_dl_basal",
+  "albumina_g_dl_basal", "proteinuria_mg_g_basal",
+  "anemia_basal", "ieca_o_ara2", "estatinas",
+  "n_medicamentos_totales", "log_proteinuria_basal",
   "perdida_seguimiento_m12", "perdida_seguimiento_m24",
-  "tfg_ml_min_m12", "tfg_ml_min_m24", "tasa_declive_tfg",
-  "creatinina_mg_dl_m12", "hemoglobina_g_dl_m12", "albumina_g_dl_m12",
-  "proteinuria_mg_g_m12", "hemoglobina_g_dl_m24", "albumina_g_dl_m24",
-  "proteinuria_mg_g_m24"
+  "progresion_g5_o_trr", "tiempo_seguimiento_dias",
+  "tfg_ml_min_m12", "tfg_ml_min_m24",
+  "tasa_declive_tfg", "creatinina_mg_dl_m12",
+  "hemoglobina_g_dl_m12", "albumina_g_dl_m12",
+  "proteinuria_mg_g_m12", "hemoglobina_g_dl_m24",
+  "albumina_g_dl_m24", "proteinuria_mg_g_m24"
 )
 
-faltan <- setdiff(columnas_requeridas, names(base))
+faltan <- setdiff(variables_requeridas, names(base))
 
 if (length(faltan) > 0) {
-  stop("Estas columnas no existen en la base: ", paste(faltan, collapse = ", "))
+  stop("Estas columnas no existen en la base: ",
+       paste(faltan, collapse = ", "))
 }
 ```
 
@@ -110,9 +98,7 @@ flujo <- tibble(
 knitr::kable(flujo, caption = "Tabla. Flujo de participantes en la cohorte")
 ```
 
-[**Complete aquí con 2-3 oraciones que interpreten el flujo de participantes.**
-Por ejemplo: cuántos participantes tienen seguimiento completo, cuál es la
-tasa de pérdida y si esa tasa es aceptable para el análisis.]
+La cohorte incluyó 300 participantes, de los cuales el 82,0% completaron el seguimiento al mes 24. Las peridas de seguimeinto fueros de 12,3% al mes 12 y del 18,0% al mes 24. Además, el 11% de la cohorte inicial presentaron progresion a estadio G5 o inicio de terapia de reemplazo renal. Aunque las perdidas observadas fueron relevante, se requiere evaluar si existe desviaciones sistemáticas por sus características basales.
 
 # Resumen estadístico general
 
@@ -172,10 +158,7 @@ base %>%
   bold_labels()
 ```
 
-[**Complete aquí con 3-5 oraciones interpretando los hallazgos principales
-de la Tabla 1.** Describa el gradiente a través de los estadios en las
-variables más relevantes. ¿Qué diferencias son estadísticamente
-significativas? ¿Son clínicamente plausibles?]
+Se observaron diferencias estadísticamente significativas entre los estadios de ERC para la TFG estimada, la creatinina sérica, la hemoglobina y la presencia de anemia basal. La mediana de TGF disminuyo acompañado de un cremento de la creatinina sérica comportamiento esperado según la clasificación de la ERC. La hemoglobina no mostró un gradiente estrictamente progresivo entre estadios. No se identificaron diferencias estadísticamente significativas en las demás características basales evaluadas.
 
 # Distribución de variables continuas
 
@@ -198,7 +181,7 @@ base %>%
     "pas_mmhg_basal"         = "PAS (mmHg)",
     "log_proteinuria_basal"  = "Log-proteinuria"
   )) %>%
-  filter(!is.na(valor)) %>%
+  filter(!is.na(valor), is.finite(valor)) %>%
   ggplot(aes(x = valor)) +
   geom_histogram(bins = 25, fill = "#2E75B6", color = "white", alpha = 0.8) +
   facet_wrap(~variable, scales = "free", ncol = 4) +
@@ -207,9 +190,7 @@ base %>%
   theme_minimal(base_size = 11)
 ```
 
-[**Interprete las distribuciones observadas.** ¿Qué variables muestran
-distribución aproximadamente normal? ¿Cuáles tienen sesgo marcado?
-¿Justifica alguna distribución una transformación adicional?]
+Las variables edad, hemoglobina, albumina, presión arterial sistólica y la transformación logarítmica de la proteinuria presentaron distribuciones aproximadamente simétricas. Mientras que la proteinuria presentó una marcada asimetría positiva, caracterizada por una concentración de observaciones en valores bajos y una cola prolongada hacia valores elevados.La distribución de creatinina se encontró afectada por valores extremos que requieren verificación.
 
 ## Valores atípicos por estadio
 
@@ -240,8 +221,7 @@ base %>%
   theme(legend.position = "none")
 ```
 
-[**Documente los valores atípicos residuales identificados**, si los hay.
-¿Son valores biológicamente posibles o indican problemas de calidad?]
+Se identificaron valores atípicos residuales en creatinina sérica, hemoglobina, albúmina y presión arterial sistólica. Los valores extremos de hemoglobina (6,8–17,0 g/dL), así como algunas observaciones de albúmina y presión arterial, podrían representar variabilidad clínica real. Sin embargo, los valores de creatinina de 0,08 y 142 mg/dL, son clínicamente imposibles y sugieren posibles errores de digitación o medición. 
 
 # Evolución longitudinal de las variables clave
 
@@ -267,12 +247,18 @@ base %>%
   ggplot(aes(x = tiempo, y = tfg,
              color = estadio_basal, group = id_estudio)) +
   geom_line(alpha = 0.12) +
-  # Con solo tres tiempos de visita, mostrar la mediana por estadio
-  # evita usar un ajuste LOESS sobre un eje temporal categórico.
-  stat_summary(aes(group = estadio_basal),
-               fun = median, geom = "line", linewidth = 1.5) +
-  stat_summary(aes(group = estadio_basal),
-               fun = median, geom = "point", size = 2.3) +
+  stat_summary(
+    aes(group = estadio_basal),
+    fun = median,
+    geom = "line",
+    linewidth = 1.5
+  ) +
+  stat_summary(
+    aes(group = estadio_basal),
+    fun = median,
+    geom = "point",
+    size = 2.5
+  ) +
   scale_color_manual(values = c("G2"  = "#93C6E0",
                                  "G3a" = "#4A90D9",
                                  "G3b" = "#2E75B6",
@@ -286,7 +272,7 @@ base %>%
   theme_minimal(base_size = 13)
 ```
 
-```{r declive_tfg}
+```{r tasa_declive_tfg}
 # Tasa de declive anual por estadio
 base %>%
   filter(!is.na(tasa_declive_tfg)) %>%
@@ -295,7 +281,8 @@ base %>%
     n = n(),
     mediana_declive = median(tasa_declive_tfg),
     p25 = quantile(tasa_declive_tfg, 0.25),
-    p75 = quantile(tasa_declive_tfg, 0.75)
+    p75 = quantile(tasa_declive_tfg, 0.75),
+    .groups = "drop"
   ) %>%
   knitr::kable(
     digits = 1,
@@ -305,8 +292,7 @@ base %>%
   )
 ```
 
-[**Interprete la evolución de la TFG.** ¿Se observa el gradiente esperado
-en la tasa de declive? ¿Hay estadios con comportamiento inesperado?]
+Durante los 24 meses de seguimiento se observó un mayor deterioro absoluto de la función renal en el grupo con enfermedad más avanzada, no se observó un graadiente estrictamente progresivo entre los estadios ya que los grados G3a y G3b presentan el mismo descenso mediano anual.
 
 # Correlaciones entre variables basales
 
@@ -338,14 +324,11 @@ corrplot(cor_mat,
          mar   = c(0, 0, 2, 0))
 ```
 
-[**Interprete las correlaciones más relevantes.** ¿Qué pares de variables
-muestran correlación fuerte (|r| > 0.6)? ¿Puede haber problemas de
-colinealidad en los modelos de regresión múltiple? ¿La dirección de las
-correlaciones es la esperada clínicamente?]
+El análisis identificó una corelacion inversa muy fuerte entre la TFG estimada y la creatinina sérica basal, resultado consistente con su relacion clínica y fisiológica,debe considerarse en el desarrollo de modelos multivariables, debido al riesgo de colinealidad si ambas se incluyen simultáneamente.
 
 # Verificación de calidad post-limpieza
 
-```{r calidad_datos}
+```{r calidad_post_limpieza}
 cat("=== VERIFICACIONES DE CALIDAD ===\n\n")
 
 # IDs duplicados
@@ -373,10 +356,11 @@ cat("\nCorrelación TFG-creatinina basal (debe ser fuertemente negativa):",
               use = "complete.obs", method = "spearman"), 2), "\n")
 ```
 
-```{r dispersion_creatinina_tfg}
-ggplot(base %>% filter(!is.na(creatinina_mg_dl_basal),
-                       creatinina_mg_dl_basal > 0,
-                       creatinina_mg_dl_basal < 15),
+```{r relacion_creatinina_tfg}
+ggplot(base %>%
+         filter(!is.na(creatinina_mg_dl_basal),
+                creatinina_mg_dl_basal > 0,
+                creatinina_mg_dl_basal < 15),
        aes(x = creatinina_mg_dl_basal,
            y = tfg_ml_min_basal,
            color = estadio_basal)) +
@@ -398,8 +382,7 @@ ggplot(base %>% filter(!is.na(creatinina_mg_dl_basal),
   theme_minimal(base_size = 13)
 ```
 
-[**Resuma los hallazgos de calidad.** ¿Se detectaron problemas residuales?
-¿Los datos están listos para el análisis estadístico formal?]
+La verificación de calidad post-limpieza no identificó registros duplicados ni inconsistencias relevantes. El comportamiento de las medianas de TGF mostraron el gradiente esperado entre los estadios de ERC, y se observó una correlación inversa fuerte entre TFG y creatinina basal coherente con su relación fisiológico. Los valores extremos evidenciados en la variable creatinina requieren verificación. En general la base  presenta una consistencia general satisfactoria, todavía es necesario resolver estas inconsistencias y evaluar los datos faltantes antes de considerarla lista para el análisis estadístico formal.
 
 # Evaluación de datos faltantes
 
@@ -420,37 +403,22 @@ base %>%
   summarise(
     con_dato = sum(!is.na(hemoglobina_g_dl_m12)),
     sin_dato = sum(is.na(hemoglobina_g_dl_m12)),
-    pct_faltante = round(100 * sin_dato / (con_dato + sin_dato), 1),
+    pct_faltante = round(
+      sin_dato / (con_dato + sin_dato) * 100,
+      1
+    ),
     .groups = "drop"
   ) %>%
   knitr::kable(
     col.names = c("Estadio", "Con dato", "Sin dato", "% faltante"),
-    caption   = "Tabla. Datos faltantes en hemoglobina mes 12 por estadio"
+    caption = "Tabla. Datos faltantes en hemoglobina mes 12 por estadio"
   )
 ```
 
-[**Interprete el patrón de datos faltantes.** ¿Son los faltantes proporcionales
-entre estadios (compatible con MCAR) o más frecuentes en estadios avanzados
-(sugiere MAR)? ¿Qué implicaciones tiene para la estrategia de análisis?]
+Se evidenció una distribución desigual entre los estadios de ERC, con una mayor proporción de valores ausentes de hemoglobina al mes 12 en G3b (24,7 %) y G4 (18,9 %), en comparación con G2 (13,0 %) y G3a (12,9 %). Este patrón sugiere que la ausencia de datos podría estar relacionada con la gravedad basal de la enfermedad, lo que sería compatible con un mecanismo MAR (Missing At Random).
 
 # Conclusiones para el análisis estadístico
-
-[**Complete esta sección con sus propias conclusiones.** Debe incluir:]
-
-**Hallazgos principales del análisis exploratorio:**
-- [Describa los hallazgos más relevantes de la distribución de variables]
-- [Mencione correlaciones importantes para el análisis]
-- [Documente cualquier problema de calidad residual identificado]
-
-**Decisiones metodológicas informadas por el análisis exploratorio:**
-- [Transformaciones de variables que se aplicarán en el análisis]
-- [Estrategia de manejo de datos faltantes]
-- [Covariables potencialmente colineales a considerar en los modelos]
-- [Subgrupos o patrones inesperados que requieren análisis adicional]
-
-**Declaración de preparación para el análisis:**
-La base analítica ha sido revisada y los datos están [listos / requieren
-los siguientes ajustes adicionales] para el análisis estadístico formal.
+El análisis exploratorio de los 300 pacientes con ERC evidenció una elevada frecuencia de hipertensión arterial (86 %) y anemia basal (67,3 %), con distribuciones aproximadamente simétricas para edad, hemoglobina y albúmina, mientras que la proteinuria presentó marcada asimetría positiva, por lo que se conservará su transformación logarítmica para los análisis posteriores. Se observó un mayor declive anual de la TFG en el estadio G4 (−5,2 mL/min/año) y una correlación inversa muy fuerte entre TFG y creatinina basal (rho = −0,94), lo que exige considerar su posible colinealidad al seleccionar covariables para modelos multivariables. Aunque no se identificaron registros duplicados ni inconsistencias en los indicadores de seguimiento, persistieron valores extremos de creatinina (0,08 y 142 mg/dL) que requieren verificación. Adicionalmente, se registraron pérdidas de seguimiento del 18 % al mes 24 y una mayor proporción de datos faltantes de hemoglobina en G3b (24,7 %) y G4 (18,9 %), por lo que se evaluarán los mecanismos de ausencia, la pertinencia de imputación múltiple y los análisis de sensibilidad. Finalmente, se recomienda profundizar en el deterioro de la función renal en G4, los patrones de datos faltantes y las diferencias entre participantes con y sin seguimiento completo antes de iniciar el análisis estadístico formal.
 
 # Información de sesión
 

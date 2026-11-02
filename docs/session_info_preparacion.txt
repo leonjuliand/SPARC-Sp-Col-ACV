@@ -8,9 +8,9 @@
  collate  Spanish_Latin America.utf8
  ctype    Spanish_Latin America.utf8
  tz       America/Bogota
- date     2026-10-21
- rstudio  2026.09.0+174 Autumn Hawkbit (desktop)
- pandoc   3.10 @ C:/Program Files/RStudio/resources/app/bin/quarto/bin/tools/ (via rmarkdown)
+ date     2026-11-01
+ rstudio  2026.10.1+239 Blue Mistflower (desktop)
+ pandoc   NA
  quarto   1.10.18 @ C:\\PROGRA~1\\RStudio\\RESOUR~1\\app\\bin\\quarto\\bin\\quarto.exe
 
 ─ Packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -46,13 +46,11 @@
  readr        * 2.1.6   2025-11-14 [1] CRAN (R 4.5.2)
  repr           1.1.7   2024-03-22 [1] CRAN (R 4.5.3)
  rlang          1.1.7   2026-01-09 [1] CRAN (R 4.5.2)
- rmarkdown      2.30    2025-09-28 [1] CRAN (R 4.5.2)
  rprojroot      2.1.1   2025-08-26 [1] CRAN (R 4.5.3)
- rsconnect      1.7.0   2025-12-06 [1] CRAN (R 4.5.2)
  rstudioapi     0.18.0  2026-01-16 [1] CRAN (R 4.5.2)
  S7             0.2.1   2025-11-14 [1] CRAN (R 4.5.2)
  scales         1.4.0   2025-04-24 [1] CRAN (R 4.5.2)
- sessioninfo  * 1.2.4   2026-06-04 [1] CRAN (R 4.5.3)
+ sessioninfo    1.2.4   2026-06-04 [1] CRAN (R 4.5.3)
  skimr        * 2.2.2   2026-01-10 [1] CRAN (R 4.5.3)
  stringi        1.8.7   2025-03-27 [1] CRAN (R 4.5.2)
  stringr      * 1.6.0   2025-11-04 [1] CRAN (R 4.5.2)
@@ -67,7 +65,6 @@
  visdat         0.6.0   2023-02-02 [1] CRAN (R 4.5.3)
  withr          3.0.2   2024-10-28 [1] CRAN (R 4.5.2)
  xfun           0.56    2026-01-18 [1] CRAN (R 4.5.2)
- yaml           2.3.12  2025-12-10 [1] CRAN (R 4.5.2)
 
  [1] C:/Users/ASUS/AppData/Local/R/win-library/4.5
  [2] C:/Program Files/R/R-4.5.2/library
